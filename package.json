@@ -1,0 +1,23 @@
+{
+    "name": "@wocker/cron-plugin",
+    "version": "1.0.0",
+    "author": "Kris Papercut <krispcut@gmai.com>",
+    "description": "Wocker cron plugin",
+    "license": "MIT",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "keywords": [
+        "wocker"
+    ],
+    "homepage": "https://github.com/kearisp/wocker-cron-plugin#readme",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/kearisp/wocker-cron-plugin.git"
+    },
+    "bugs": {
+        "url": "https://github.com/kearisp/wocker-cron-plugin/issues"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    }
+}
