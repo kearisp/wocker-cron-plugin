@@ -6,14 +6,16 @@ import {
     Plugin,
     Logger,
     Cli,
-    FSManager
+    FSManager,
+    Project
 } from "@wocker/core";
-import Path from "path";
-import {promises as FS} from "fs";
+import * as Path from "path";
+import {promises as FS, existsSync} from "fs";
 
 
 type StartOptions = {
-    rebuild?: boolean;
+    restart?: boolean;
+    build?: boolean;
 };
 
 type CrontabOptions = {
@@ -38,9 +40,14 @@ export class CronPlugin extends Plugin {
         super.install(cli);
 
         cli.command("cron:start")
-            .option("rebuild", {
+            .option("restart", {
                 type: "boolean",
                 alias: "r",
+                description: "Restart service"
+            })
+            .option("build", {
+                type: "boolean",
+                alias: "b",
                 description: "Rebuild image"
             })
             .action((options) => this.start(options));
@@ -57,17 +64,20 @@ export class CronPlugin extends Plugin {
             .option("remove", {
                 type: "boolean",
                 alias: "r",
-                description: "Remove the current crontab"
+                description: "Remove current crontab"
             })
             .action((options, filename) => this.crontab(options, filename as string));
     }
 
     public async start(options: StartOptions) {
         const {
-            rebuild
+            restart,
+            build
         } = options;
 
-        if(rebuild) {
+        console.info("Starting cron service...");
+
+        if(restart || build) {
             await this.dockerService.removeContainer(this.containerName);
         }
 
@@ -79,14 +89,21 @@ export class CronPlugin extends Plugin {
         let container = await this.dockerService.getContainer(this.containerName);
 
         if(!container) {
-            await this.build(rebuild);
+            await this.build(build);
+
+            // const cronPackage = await require("@wocker/area");
+            // const areaPackagePath = Path.join(__dirname, "../../../package.json");
+            // const cronCliPath = Path.join(__dirname, "../../cron");
 
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: this.imageName,
+                networkMode: "host",
                 volumes: [
-                    "/var/run/docker.sock:/var/run/docker.sock:ro",
-                    `${fs.path()}:/root/app`
+                    "/var/run/docker.sock.raw:/var/run/docker.sock",
+                    // ...existsSync(areaPackagePath) ? [
+                    //     `${Path.join(__dirname, "../../cron")}:/root/app`
+                    // ] : []
                 ]
             });
         }
@@ -96,8 +113,6 @@ export class CronPlugin extends Plugin {
                 Status
             }
         } = await container.inspect();
-
-        Logger.info(Status);
 
         if(["created", "exited"].includes(Status)) {
             await container.start();
@@ -148,6 +163,8 @@ export class CronPlugin extends Plugin {
             project.setMeta("crontab", crontab);
 
             await project.save();
+
+            await this.updateCrontab(project);
         }
 
         if(filename) {
@@ -156,13 +173,48 @@ export class CronPlugin extends Plugin {
             project.setMeta("crontab", file.toString());
 
             await project.save();
+
+            await this.updateCrontab(project);
+        }
+    }
+
+    protected async updateCrontab(project: Project) {
+        const container = await this.dockerService.getContainer(this.containerName);
+
+        if(!container) {
+            return;
         }
 
-        // project.getMeta("crontab");
-        // project.setM
-        // const crontab = await this.appConfigService.getMeta("crontab");
+        function escapeSpecialChars(str: string) {
+            const specialChars = ["$", "\"", "`", "!", "\\"];
+            return str.split("")
+                .map(c => specialChars.includes(c) ? `\\${c}` : c)
+                .join("");
+        }
 
-        // console.log(">_<", project);
+        const exec = await container.exec({
+            Tty: false,
+            AttachStdin: true,
+            AttachStdout: true,
+            AttachStderr: true,
+            Cmd: ["bash", "-i", "-c", `ws-cron set "${project.containerName}" "${escapeSpecialChars(project.getMeta("crontab", ""))}"`]
+        });
+
+        const res = await exec.start({
+            stdin: true,
+            Tty: true,
+            hijack: true
+        });
+
+        this.dockerService.attachStream(res);
+
+        // const projectContainer = await this.projectService.getContainer();
+        //
+        // if(!projectContainer) {
+        //     return;
+        // }
+        //
+        // console.log(projectContainer);
     }
 
     protected async build(rebuild?: boolean) {

@@ -1,26 +1,32 @@
 FROM ubuntu:latest
 
 RUN apt-get update && \
-    apt-get -y install cron wget curl unzip
+    apt-get -y --fix-missing install cron curl
 
-RUN curl -fsSL https://bun.sh/install | bash
+ARG NODE_VERSION="18.16.0"
+ENV NVM_DIR=/root/.nvm
 
-ENV BUN_INSTALL="/root/.bun"
-ENV PATH="$BUN_INSTALL/bin:$PATH"
+RUN if [ "$NODE_VERSION" != "" ] && [ "$NODE_VERSION" != "none" ]; then \
+        mkdir -p $NVM_DIR; \
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash; \
+        . "$NVM_DIR/nvm.sh" && \
+            nvm install $NODE_VERSION && \
+            nvm alias default $NODE_VERSION && \
+            nvm use default; echo "[ -n \"\$(command -v npm)\" ] && . <(npm completion)" >> /.bashrc && \
+            npm install -g @wocker/cron; \
+    fi
 
 RUN ln -s /proc/1/fd/1 /var/log/cron.log
 
 ADD ./bin/entrypoint.sh /entrypoint.sh
 RUN chmod 0755 /entrypoint.sh
 
-ADD ./bin/test.sh /root/test.sh
-RUN chmod 0644 /root/test.sh
-
-COPY ./plugin /root/app
+ADD ./bin/default.sh /root/default.sh
+RUN chmod 0644 /root/default.sh
 
 RUN { \
         cat; \
-        echo "* * * * * bash /root/test.sh 'Cron' >> /var/log/cron.log 2>> /var/log/cron.log"; \
+        echo "* * * * * bash /root/default.sh 'No cron jobs' >> /var/log/cron.log 2>> /var/log/cron.log"; \
     } | crontab -
 RUN crontab -l
 
