@@ -1,6 +1,8 @@
 #!/bin/sh
 
-env >> /etc/environment
-
-echo "$@"
+#echo "$@"
 exec "$@"
+
+#ws-cron -h
+
+#cron -f

@@ -1,6 +1,7 @@
 import {
     Injectable,
     AppConfigService,
+    AppEventsService,
     ProjectService,
     DockerService,
     Plugin,
@@ -10,7 +11,11 @@ import {
     Project
 } from "@wocker/core";
 import * as Path from "path";
+import * as OS from "os";
 import {promises as FS, existsSync} from "fs";
+
+import {exec} from "./utils/exec";
+import {spawn} from "./utils/spawn";
 
 
 type StartOptions = {
@@ -20,6 +25,7 @@ type StartOptions = {
 
 type CrontabOptions = {
     name?: string;
+    edit?: boolean;
     remove?: boolean;
 };
 
@@ -30,6 +36,7 @@ export class CronPlugin extends Plugin {
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
+        protected readonly appEventsService: AppEventsService,
         protected readonly projectService: ProjectService,
         protected readonly dockerService: DockerService
     ) {
@@ -61,12 +68,19 @@ export class CronPlugin extends Plugin {
                 alias: "n",
                 description: "Project name"
             })
+            .option("edit", {
+                type: "boolean",
+                alias: "e",
+                description: "Edit current crontab"
+            })
             .option("remove", {
                 type: "boolean",
                 alias: "r",
                 description: "Remove current crontab"
             })
             .action((options, filename) => this.crontab(options, filename as string));
+
+        this.appEventsService.on("project:start", (project) => this.updateCrontab(project));
     }
 
     public async start(options: StartOptions) {
@@ -81,29 +95,25 @@ export class CronPlugin extends Plugin {
             await this.dockerService.removeContainer(this.containerName);
         }
 
-        const fs = new FSManager(
-            Path.join(__dirname, "../plugin"),
-            Path.join(__dirname, "../plugin")
-        );
-
         let container = await this.dockerService.getContainer(this.containerName);
 
         if(!container) {
             await this.build(build);
 
-            // const cronPackage = await require("@wocker/area");
-            // const areaPackagePath = Path.join(__dirname, "../../../package.json");
-            // const cronCliPath = Path.join(__dirname, "../../cron");
+            const cronPath = Path.join(__dirname, "../../cron");
+            const cronPackagePath = Path.join(cronPath, "package.json");
 
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: this.imageName,
                 networkMode: "host",
                 volumes: [
+                    `${Path.join(__dirname, "../plugin/bin/entrypoint.sh")}:/entrypoint.sh`,
                     "/var/run/docker.sock.raw:/var/run/docker.sock",
-                    // ...existsSync(areaPackagePath) ? [
-                    //     `${Path.join(__dirname, "../../cron")}:/root/app`
-                    // ] : []
+                    ...existsSync(cronPackagePath) ? [
+                        // `${Path.join(cronPath, "lib")}:/root/.nvm/versions/node/v18.16.0/lib/node_modules/@wocker/cron/lib`
+                        `${Path.join(cronPath, "lib")}:/usr/lib/node_modules/@wocker/cron/lib`
+                    ] : []
                 ]
             });
         }
@@ -117,6 +127,14 @@ export class CronPlugin extends Plugin {
         if(["created", "exited"].includes(Status)) {
             await container.start();
         }
+
+        const projects = await this.projectService.search({});
+
+        for(const project of projects) {
+            if(project.hasMeta("crontab")) {
+                await this.updateCrontab(project);
+            }
+        }
     }
 
     public async stop() {
@@ -128,6 +146,7 @@ export class CronPlugin extends Plugin {
     public async crontab(options: CrontabOptions, filename?: string) {
         const {
             name,
+            edit,
             remove
         } = options;
 
@@ -135,15 +154,18 @@ export class CronPlugin extends Plugin {
             await this.projectService.cdProject(name);
         }
 
-        const project = await this.projectService.get();
+        if(edit) {
+            await this.edit();
+            return;
+        }
 
         if(remove) {
-            project.unsetMeta("crontab");
-
-            await project.save();
+            await this.remove();
 
             return;
         }
+
+        const project = await this.projectService.get();
 
         if(!process.stdin.isTTY) {
             const crontab: string = await new Promise((resolve, reject) => {
@@ -176,6 +198,36 @@ export class CronPlugin extends Plugin {
 
             await this.updateCrontab(project);
         }
+    }
+
+    protected async edit() {
+        const project = await this.projectService.get();
+
+        const crontabPath = Path.join(OS.tmpdir(), "ws-crontab.txt");
+
+        await FS.writeFile(crontabPath, project.getMeta("crontab", ""));
+        await spawn("nano", [crontabPath]);
+
+        const res = await FS.readFile(crontabPath);
+        await FS.rm(crontabPath);
+
+        if(project.getMeta("crontab", "") === res.toString()) {
+            return;
+        }
+
+        project.setMeta("crontab", res.toString());
+
+        await project.save();
+
+        await this.updateCrontab(project);
+    }
+
+    protected async remove() {
+        const project = await this.projectService.get();
+
+        project.unsetMeta("crontab");
+
+        await project.save();
     }
 
     protected async updateCrontab(project: Project) {

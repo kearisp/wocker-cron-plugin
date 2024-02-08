@@ -3,18 +3,22 @@ FROM ubuntu:latest
 RUN apt-get update && \
     apt-get -y --fix-missing install cron curl
 
-ARG NODE_VERSION="18.16.0"
-ENV NVM_DIR=/root/.nvm
+#ARG NODE_VERSION="18.16.0"
+#ENV NVM_DIR=/root/.nvm
 
-RUN if [ "$NODE_VERSION" != "" ] && [ "$NODE_VERSION" != "none" ]; then \
-        mkdir -p $NVM_DIR; \
-        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash; \
-        . "$NVM_DIR/nvm.sh" && \
-            nvm install $NODE_VERSION && \
-            nvm alias default $NODE_VERSION && \
-            nvm use default; echo "[ -n \"\$(command -v npm)\" ] && . <(npm completion)" >> /.bashrc && \
-            npm install -g @wocker/cron; \
-    fi
+RUN curl -sL https://deb.nodesource.com/setup_18.x | bash -
+RUN apt-get install -y nodejs
+RUN npm install -g @wocker/cron
+
+#RUN if [ "$NODE_VERSION" != "" ] && [ "$NODE_VERSION" != "none" ]; then \
+#        mkdir -p $NVM_DIR; \
+#        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash; \
+#        . "$NVM_DIR/nvm.sh" && \
+#            nvm install $NODE_VERSION && \
+#            nvm alias default $NODE_VERSION && \
+#            nvm use default; echo "[ -n \"\$(command -v npm)\" ] && . <(npm completion)" >> /.bashrc && \
+#            npm install -g @wocker/cron; \
+#    fi
 
 RUN ln -s /proc/1/fd/1 /var/log/cron.log
 
@@ -34,4 +38,5 @@ VOLUME ["/var/run/docker.sock"]
 WORKDIR /root/app
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["cron", "-f"]
+#CMD ["cron", "-f"]
+CMD ["ws-cron", "watch"]
