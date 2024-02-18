@@ -1,4 +1,4 @@
-import {Logger} from "@wocker/core";
+import {Logger} from "@wocker/ws";
 import {exec as processExec} from "child_process";
 import chalk from "chalk";
 

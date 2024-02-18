@@ -1,20 +1,15 @@
+import {Cli} from "@wocker/core";
 import {
-    Injectable,
     AppConfigService,
-    AppEventsService,
     ProjectService,
     DockerService,
     Plugin,
-    Logger,
-    Cli,
-    FSManager,
-    Project
-} from "@wocker/core";
+    Injectable,
+    FS
+} from "@wocker/ws";
 import * as Path from "path";
 import * as OS from "os";
-import {promises as FS, existsSync} from "fs";
 
-import {exec} from "./utils/exec";
 import {spawn} from "./utils/spawn";
 
 
@@ -25,6 +20,7 @@ type StartOptions = {
 
 type CrontabOptions = {
     name?: string;
+    list?: boolean;
     edit?: boolean;
     remove?: boolean;
 };
@@ -36,11 +32,10 @@ export class CronPlugin extends Plugin {
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
-        protected readonly appEventsService: AppEventsService,
         protected readonly projectService: ProjectService,
         protected readonly dockerService: DockerService
     ) {
-        super();
+        super("cron");
     }
 
     public install(cli: Cli) {
@@ -57,6 +52,9 @@ export class CronPlugin extends Plugin {
                 alias: "b",
                 description: "Rebuild image"
             })
+            .help({
+                description: "Starting cron"
+            })
             .action((options) => this.start(options));
 
         cli.command("cron:stop")
@@ -68,6 +66,11 @@ export class CronPlugin extends Plugin {
                 alias: "n",
                 description: "Project name"
             })
+            .option("list", {
+                type: "boolean",
+                alias: "l",
+                description: "Show crontab"
+            })
             .option("edit", {
                 type: "boolean",
                 alias: "e",
@@ -78,9 +81,10 @@ export class CronPlugin extends Plugin {
                 alias: "r",
                 description: "Remove current crontab"
             })
+            .help({
+                description: "Crontab"
+            })
             .action((options, filename) => this.crontab(options, filename as string));
-
-        this.appEventsService.on("project:start", (project) => this.updateCrontab(project));
     }
 
     public async start(options: StartOptions) {
@@ -100,20 +104,19 @@ export class CronPlugin extends Plugin {
         if(!container) {
             await this.build(build);
 
-            const cronPath = Path.join(__dirname, "../../cron");
-            const cronPackagePath = Path.join(cronPath, "package.json");
+            if(!FS.existsSync(this.dataPath("crontab.json"))) {
+                await FS.writeJSON(this.dataPath("crontab.json"), {});
+            }
 
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: this.imageName,
                 networkMode: "host",
+                restart: "always",
                 volumes: [
-                    `${Path.join(__dirname, "../plugin/bin/entrypoint.sh")}:/entrypoint.sh`,
                     "/var/run/docker.sock.raw:/var/run/docker.sock",
-                    ...existsSync(cronPackagePath) ? [
-                        // `${Path.join(cronPath, "lib")}:/root/.nvm/versions/node/v18.16.0/lib/node_modules/@wocker/cron/lib`
-                        `${Path.join(cronPath, "lib")}:/usr/lib/node_modules/@wocker/cron/lib`
-                    ] : []
+                    `${this.appConfigService.dataPath("ws.log")}:/root/app/ws.log`,
+                    `${this.dataPath("crontab.json")}:/root/app/plugins/cron/crontab.json`
                 ]
             });
         }
@@ -127,14 +130,6 @@ export class CronPlugin extends Plugin {
         if(["created", "exited"].includes(Status)) {
             await container.start();
         }
-
-        const projects = await this.projectService.search({});
-
-        for(const project of projects) {
-            if(project.hasMeta("crontab")) {
-                await this.updateCrontab(project);
-            }
-        }
     }
 
     public async stop() {
@@ -146,6 +141,7 @@ export class CronPlugin extends Plugin {
     public async crontab(options: CrontabOptions, filename?: string) {
         const {
             name,
+            list,
             edit,
             remove
         } = options;
@@ -158,10 +154,8 @@ export class CronPlugin extends Plugin {
             await this.edit();
             return;
         }
-
-        if(remove) {
+        else if(remove) {
             await this.remove();
-
             return;
         }
 
@@ -182,21 +176,21 @@ export class CronPlugin extends Plugin {
                 process.stdin.on("error", reject);
             });
 
-            project.setMeta("crontab", crontab);
-
-            await project.save();
-
-            await this.updateCrontab(project);
+            await this.setCrontab(project.containerName, crontab);
+            await this.updateCrontab();
+            return;
         }
 
         if(filename) {
             const file = await FS.readFile(filename);
 
-            project.setMeta("crontab", file.toString());
+            await this.setCrontab(project.containerName, file.toString());
+            await this.updateCrontab();
+            return;
+        }
 
-            await project.save();
-
-            await this.updateCrontab(project);
+        if(list) {
+            return this.getCrontab(project.containerName);
         }
     }
 
@@ -204,22 +198,20 @@ export class CronPlugin extends Plugin {
         const project = await this.projectService.get();
 
         const crontabPath = Path.join(OS.tmpdir(), "ws-crontab.txt");
+        const crontab = await this.getCrontab(project.containerName);
 
-        await FS.writeFile(crontabPath, project.getMeta("crontab", ""));
+        await FS.writeFile(crontabPath, crontab);
         await spawn("nano", [crontabPath]);
 
         const res = await FS.readFile(crontabPath);
         await FS.rm(crontabPath);
 
-        if(project.getMeta("crontab", "") === res.toString()) {
+        if(crontab === res.toString()) {
             return;
         }
 
-        project.setMeta("crontab", res.toString());
-
-        await project.save();
-
-        await this.updateCrontab(project);
+        await this.setCrontab(project.containerName, res.toString());
+        await this.updateCrontab();
     }
 
     protected async remove() {
@@ -230,18 +222,37 @@ export class CronPlugin extends Plugin {
         await project.save();
     }
 
-    protected async updateCrontab(project: Project) {
+    protected async getCrontab(name: string): Promise<string> {
+        if(!FS.existsSync(this.dataPath("crontab.json"))) {
+            return "";
+        }
+
+        const {
+            [name]: crontab = ""
+        } = await FS.readJSON(this.dataPath("crontab.json"));
+
+        return crontab;
+    }
+
+    protected async setCrontab(name: string, crontab: string) {
+        if(!FS.existsSync(this.dataPath("crontab.json"))) {
+            await FS.writeJSON(this.dataPath("crontab.json"), {
+                [name]: crontab
+            });
+            return;
+        }
+
+        await FS.writeJSON(this.dataPath("crontab.json"), {
+            ...await FS.readJSON(this.dataPath("crontab.json")),
+            [name]: crontab
+        });
+    }
+
+    protected async updateCrontab() {
         const container = await this.dockerService.getContainer(this.containerName);
 
         if(!container) {
             return;
-        }
-
-        function escapeSpecialChars(str: string) {
-            const specialChars = ["$", "\"", "`", "!", "\\"];
-            return str.split("")
-                .map(c => specialChars.includes(c) ? `\\${c}` : c)
-                .join("");
         }
 
         const exec = await container.exec({
@@ -249,7 +260,7 @@ export class CronPlugin extends Plugin {
             AttachStdin: true,
             AttachStdout: true,
             AttachStderr: true,
-            Cmd: ["bash", "-i", "-c", `ws-cron set "${project.containerName}" "${escapeSpecialChars(project.getMeta("crontab", ""))}"`]
+            Cmd: ["bash", "-i", "-c", "ws-cron update"]
         });
 
         const res = await exec.start({
@@ -259,14 +270,6 @@ export class CronPlugin extends Plugin {
         });
 
         this.dockerService.attachStream(res);
-
-        // const projectContainer = await this.projectService.getContainer();
-        //
-        // if(!projectContainer) {
-        //     return;
-        // }
-        //
-        // console.log(projectContainer);
     }
 
     protected async build(rebuild?: boolean) {

@@ -33,5 +33,8 @@
     "devDependencies": {
         "@types/node": "^20.11.14",
         "typescript": "^5.3.3"
+    },
+    "peerDependencies": {
+        "@wocker/ws": "^1.0.4"
     }
 }

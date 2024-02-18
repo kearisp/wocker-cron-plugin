@@ -1,5 +1,5 @@
 import {spawn as processSpawn} from "child_process";
-import {Logger} from "@wocker/core";
+import {Logger} from "@wocker/ws";
 
 
 export const spawn = async (command: string, args: string[]) => {

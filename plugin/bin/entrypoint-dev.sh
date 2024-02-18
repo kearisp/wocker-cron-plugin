@@ -1,4 +1,4 @@
 #!/bin/sh
 
 cron
-exec "$@"
+ws-cron watch
