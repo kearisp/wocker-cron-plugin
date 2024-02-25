@@ -2,14 +2,15 @@
     "name": "@wocker/cron-plugin",
     "version": "1.0.0",
     "author": "Kris Papercut <krispcut@gmai.com>",
-    "description": "Wocker cron plugin",
+    "description": "Cron plugin for wocker",
     "license": "MIT",
+    "keywords": [
+        "wocker",
+        "plugin"
+    ],
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "keywords": [
-        "wocker"
-    ],
-    "homepage": "https://github.com/kearisp/wocker-cron-plugin#readme",
+    "homepage": "https://kearisp.github.io/wocker/plugins/cron",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/kearisp/wocker-cron-plugin.git"
@@ -18,6 +19,22 @@
         "url": "https://github.com/kearisp/wocker-cron-plugin/issues"
     },
     "scripts": {
+        "prepare": "npm run build",
+        "watch": "tsc -w",
+        "build": "tsc",
         "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+        "@wocker/core": "^1.0.5",
+        "child_process": "^1.0.2",
+        "fs": "^0.0.1-security",
+        "path": "^0.12.7"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.14",
+        "typescript": "^5.3.3"
+    },
+    "peerDependencies": {
+        "@wocker/ws": "^1.0.4"
     }
 }
