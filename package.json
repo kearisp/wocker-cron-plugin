@@ -1,6 +1,6 @@
 {
     "name": "@wocker/cron-plugin",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "Kris Papercut <krispcut@gmai.com>",
     "description": "Cron plugin for wocker",
     "license": "MIT",
@@ -32,9 +32,6 @@
     },
     "devDependencies": {
         "@types/node": "^20.11.14",
-        "typescript": "^5.3.3"
-    },
-    "peerDependencies": {
-        "@wocker/ws": "^1.0.4"
+        "typescript": "^5.4.3"
     }
 }

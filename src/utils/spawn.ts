@@ -1,5 +1,4 @@
 import {spawn as processSpawn} from "child_process";
-import {Logger} from "@wocker/ws";
 
 
 export const spawn = async (command: string, args: string[]) => {
@@ -14,8 +13,6 @@ export const spawn = async (command: string, args: string[]) => {
         let withError: boolean = false;
 
         child.on("close", (code) => {
-            Logger.log("close", code);
-
             if(withError) {
                 return;
             }
