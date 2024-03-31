@@ -1,6 +1,4 @@
-import {Logger} from "@wocker/core";
 import {exec as processExec} from "child_process";
-import chalk from "chalk";
 
 
 export const exec = async (command: string) => {
@@ -29,8 +27,6 @@ export const exec = async (command: string) => {
         }
 
         worker.on("close", (code: string) => {
-            Logger.info("close", chalk.red(code));
-
             process.stdin.pause();
 
             if(process.stdin.isTTY) {
@@ -53,10 +49,6 @@ export const exec = async (command: string) => {
         });
 
         worker.on("error", (err) => {
-            Logger.info(chalk.red(err.message), {
-                command
-            });
-
             reject(err);
         });
     });
