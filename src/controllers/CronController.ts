@@ -36,14 +36,14 @@ export class CronController {
             description: "Restart service"
         })
         restart?: boolean
-    ) {
+    ): Promise<void> {
         console.info("Starting cron...");
 
         await this.cronService.start(restart, build);
     }
 
     @Command("cron:stop")
-    async stop() {
+    async stop(): Promise<void> {
         console.info("Stopping cron...");
 
         await this.cronService.stop();
@@ -76,7 +76,7 @@ export class CronController {
         })
         remove?: boolean,
         filename?: string
-    ) {
+    ): Promise<string | undefined> {
         if(name) {
             await this.projectService.cdProject(name);
         }

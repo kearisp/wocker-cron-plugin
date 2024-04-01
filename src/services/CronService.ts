@@ -35,7 +35,7 @@ export class CronService {
         return this.pluginConfigService.dataPath("crontab.json");
     }
 
-    public async start(restart?: boolean, rebuild?: boolean) {
+    public async start(restart?: boolean, rebuild?: boolean): Promise<void> {
         if(restart || rebuild) {
             await this.dockerService.removeContainer(this.containerName);
         }
@@ -69,11 +69,11 @@ export class CronService {
         }
     }
 
-    public async stop() {
+    public async stop(): Promise<void> {
         await this.dockerService.removeContainer(this.containerName);
     }
 
-    public async build(rebuild?: boolean) {
+    public async build(rebuild?: boolean): Promise<void> {
         if(!existsSync(this.pluginConfigService.dataPath("crontab.json"))) {
             await FS.writeJSON(this.pluginConfigService.dataPath("crontab.json"), {});
         }
@@ -95,7 +95,7 @@ export class CronService {
         });
     }
 
-    public async edit(containerName: string) {
+    public async edit(containerName: string): Promise<void> {
         const path = Path.join(OS.tmpdir(), "ws-crontab.txt");
         const crontab = await this.getCrontab(containerName);
 
@@ -111,7 +111,7 @@ export class CronService {
         await this.setCrontab(containerName, res.toString());
     }
 
-    public async getCrontab(containerName: string) {
+    public async getCrontab(containerName: string): Promise<string> {
         if(!existsSync(this.configPath)) {
             return "";
         }
@@ -123,7 +123,7 @@ export class CronService {
         return crontab;
     }
 
-    public async setCrontab(containerName: string, crontab: string) {
+    public async setCrontab(containerName: string, crontab: string): Promise<void> {
         if(!existsSync(this.configPath)) {
             await FS.writeJSON(this.configPath, {
                 [containerName]: crontab
