@@ -1,20 +1,14 @@
-name: Test
+name: Publish
 
 on:
-    pull_request:
-        paths:
-            - src
-            - package.json
-            - tsconfig.json
+    release:
         types:
-            - opened
-            - reopened
-            - synchronize
+            - published
 
 jobs:
-    test:
+    publish:
         runs-on: ubuntu-latest
-        environment: test
+        environment: publish
         steps:
             - name: Checkout code
               uses: actions/checkout@v3
@@ -38,3 +32,8 @@ jobs:
 
             - name: Build
               run: npm run build
+
+            - name: Publish to NPM
+              env:
+                NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+              run: npm publish
