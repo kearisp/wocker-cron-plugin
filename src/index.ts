@@ -1,10 +1,10 @@
-import {Module, PluginConfigService} from "@wocker/core";
+import {Plugin, PluginConfigService} from "@wocker/core";
 
 import {CronController} from "./controllers/CronController";
 import {CronService} from "./services/CronService";
 
 
-@Module({
+@Plugin({
     name: "cron",
     controllers: [
         CronController
