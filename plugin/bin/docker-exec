@@ -1,0 +1,48 @@
+#!/bin/sh
+
+CONTAINER=$1
+shift
+JSON=""
+for value in "$@"; do
+    if [ "$JSON" != "" ]; then
+        JSON="$JSON,"
+    fi
+
+    esc_value=$(echo "$value" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')
+    JSON="$JSON\"$esc_value\""
+done
+
+echo $JSON
+
+DH=$(echo ${DOCKER_HOST:-"unix:///var/run/docker.sock"} | sed 's#unix://##')
+WS_DIR=${WS_DIR:-"$HOME/.workspace"}
+LOG_FILE="$WS_DIR/ws.log"
+
+EXEC_RESPONSE=$(curl --unix-socket "$DH" \
+    -H "Accept: text/plain" \
+    -H "Content-Type: application/json" \
+    -d "{\"AttachStdin\":false,\"AttachStdout\":true,\"AttachStderr\":true,\"DetachKeys\":\"ctrl-p,ctrl-q\",\"Tty\":false,\"Cmd\":[$JSON]}" \
+    "http://localhost/containers/$CONTAINER/exec")
+
+ID=$(echo $EXEC_RESPONSE | grep -Eo '"Id":"[^"]+"' | sed 's/.*"Id":"\([^"]*\).*/\1/')
+
+if [ "$ID" = "" ]; then
+    TIME=$(date +"%Y-%m-%d %H:%M:%S")
+    MESSAGE=$(echo $EXEC_RESPONSE | grep -Eo '"message":"[^"]+"' | sed 's/.*"message":"\([^"]*\).*/\1/')
+    echo "[$TIME][cron:$CONTAINER] error: $MESSAGE" >> "$LOG_FILE"
+
+    echo $MESSAGE
+    exit 1;
+fi
+
+TIME=$(date +"%Y-%m-%d %H:%M:%S")
+EXEC_RESPONSE=$(curl --unix-socket "$DH" \
+    -H "Accept: application/json" \
+    -H "Content-Type: application/json" \
+    -d "{\"Tty\":true,\"Detach\":false}" \
+    "http://localhost/exec/$ID/start")
+
+#EXEC_RESPONSE=$(echo "$EXEC_RESPONSE" | sed 's/^[\n\r\s\t]*//')
+
+echo "[$TIME][cron:$CONTAINER] log: $EXEC_RESPONSE" >> "$LOG_FILE"
+echo "[$TIME][$CONTAINER] log: $EXEC_RESPONSE" >> /proc/1/fd/1

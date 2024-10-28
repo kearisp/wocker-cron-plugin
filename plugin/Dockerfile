@@ -1,23 +1,20 @@
-FROM ubuntu:latest
+FROM nginxproxy/nginx-proxy
 
-ENV WS_DIR='/root/app'
-RUN echo "WS_DIR=${WS_DIR}" | tee -a /etc/environment
+ENV WS_DIR='/root/app' TZ=Europe/Kiev
+
 WORKDIR $WS_DIR
 
+RUN echo "WS_DIR=${WS_DIR}" | tee -a /etc/environment
 RUN apt-get update && \
     apt-get -y --fix-missing install cron curl
 
-RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
-RUN apt-get install -y nodejs
-RUN npm install -g @wocker/cron
+ADD ./bin/entrypoint.sh /entrypoint-cron.sh
+ADD ./bin/docker-exec /usr/bin/docker-exec
+ADD ./Procfile /root/app/Procfile
+ADD ./crontab.tmpl /root/app/crontab.tmpl
 
-RUN { \
-        cat; \
-        echo "* * * * * ws-cron exec echo \"No jobs\""; \
-    } | crontab -
+RUN chmod +x /entrypoint-cron.sh && \
+    chmod +x /usr/bin/docker-exec
 
-ADD ./bin/entrypoint.sh /entrypoint.sh
-RUN chmod 0755 /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["ws-cron", "process"]
+ENTRYPOINT ["/entrypoint-cron.sh"]
+CMD ["forego", "start", "-r"]
