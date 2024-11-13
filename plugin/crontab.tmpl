@@ -1,0 +1,30 @@
+{{ $file := include "/root/app/crontab.json" }}
+{{ $content := fromJson $file }}
+
+{{- range $container := $ }}
+    {{- if $container.State.Health.Status }}
+        {{- if ne $container.State.Health.Status "healthy" }}
+            {{ continue }}
+        {{- end }}
+    {{- end }}
+
+    {{ $commands := index $content $container.Name }}
+
+    {{- if not $commands }}
+        {{- continue }}
+    {{- end }}
+
+{{ $commands := regexSplit "\\n+" $commands -1 }}
+
+{{- range $command := $commands }}
+{{ $time := regexReplaceAll "((?:[\\*0-9\\/]+\\s)+)(.*)" $command "${1}" }}
+{{ $cmd := regexReplaceAll "((?:[\\*0-9\\/]+\\s)+)(.*)" $command "${2}" }}
+
+    {{- if or (not $time) (not $cmd) }}
+        {{- continue }}
+    {{- end }}
+
+{{- $time }}docker-exec {{ $container.Name }} {{ $cmd }}
+
+    {{- end }}
+{{- end }}

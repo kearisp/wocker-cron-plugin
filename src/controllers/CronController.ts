@@ -2,6 +2,7 @@ import {
     Controller,
     Command,
     Option,
+    Param,
     AppConfigService,
     DockerService,
     ProjectService,
@@ -49,8 +50,15 @@ export class CronController {
         await this.cronService.stop();
     }
 
+    @Command("cron:logs")
+    public async logs(): Promise<void> {
+        await this.cronService.logs();
+    }
+
     @Command("crontab [filename]")
     async crontab(
+        @Param("filename")
+        filename?: string,
         @Option("name", {
             type: "string",
             alias: "n",
@@ -74,8 +82,7 @@ export class CronController {
             alias: "r",
             description: "Remove current crontab"
         })
-        remove?: boolean,
-        filename?: string
+        remove?: boolean
     ): Promise<string | undefined> {
         if(name) {
             await this.projectService.cdProject(name);
@@ -114,5 +121,11 @@ export class CronController {
 
             await this.cronService.setCrontab(project.containerName, crontab);
         }
+
+        await this.dockerService.exec(this.containerName, [
+            "bash", "-c", [
+                "docker-gen -notify \"crontab /root/app/crontab.txt\" /root/app/crontab.tmpl /root/app/crontab.txt"
+            ].join(" ")
+        ]);
     }
 }

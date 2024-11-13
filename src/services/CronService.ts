@@ -5,8 +5,8 @@ import {
     DockerService,
     FS
 } from "@wocker/core";
-import * as Path from "path";
 import {existsSync} from "fs";
+import * as Path from "path";
 import * as OS from "os";
 
 import {spawn} from "../utils/spawn";
@@ -23,7 +23,7 @@ export class CronService {
         protected readonly dockerService: DockerService
     ) {}
 
-    get containerName() {
+    get containerName(): string {
         return this._containerName;
     }
 
@@ -31,7 +31,7 @@ export class CronService {
         return this._imageName;
     }
 
-    get configPath() {
+    get configPath(): string {
         return this.pluginConfigService.dataPath("crontab.json");
     }
 
@@ -45,15 +45,22 @@ export class CronService {
         if(!container) {
             await this.build(rebuild);
 
+            const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: this.imageName,
                 networkMode: "host",
                 restart: "always",
+                env: {
+                    TZ
+                },
                 volumes: [
-                    "/var/run/docker.sock.raw:/var/run/docker.sock",
+                    "/var/run/docker.sock.raw:/var/run/docker.sock:ro",
+                    "/var/run/docker.sock.raw:/tmp/docker.sock:ro",
+                    `${Path.join(__dirname, "../../plugin/crontab.tmpl")}:/root/app/crontab.tmpl`,
                     `${this.appConfigService.dataPath("ws.log")}:/root/app/ws.log`,
-                    `${this.pluginConfigService.dataPath("crontab.json")}:/root/app/plugins/cron/crontab.json`
+                    `${this.pluginConfigService.dataPath("crontab.json")}:/root/app/crontab.json`
                 ]
             });
         }
@@ -136,5 +143,15 @@ export class CronService {
             ...await FS.readJSON(this.configPath),
             [containerName]: crontab
         });
+    }
+
+    public async logs(): Promise<void> {
+        const container = await this.dockerService.getContainer(this.containerName);
+
+        if(!container) {
+            return;
+        }
+
+        await this.dockerService.logs(container);
     }
 }
