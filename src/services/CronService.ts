@@ -3,9 +3,8 @@ import {
     AppConfigService,
     PluginConfigService,
     DockerService,
-    FS
+    FileSystem
 } from "@wocker/core";
-import {existsSync} from "fs";
 import * as Path from "path";
 import * as OS from "os";
 
@@ -23,16 +22,16 @@ export class CronService {
         protected readonly dockerService: DockerService
     ) {}
 
-    get containerName(): string {
+    public get fs(): FileSystem {
+        return new FileSystem(this.pluginConfigService.fs.path());
+    }
+
+    public get containerName(): string {
         return this._containerName;
     }
 
-    get imageName(): string {
+    public get imageName(): string {
         return this._imageName;
-    }
-
-    get configPath(): string {
-        return this.pluginConfigService.dataPath("crontab.json");
     }
 
     public async start(restart?: boolean, rebuild?: boolean): Promise<void> {
@@ -60,7 +59,7 @@ export class CronService {
                     "/var/run/docker.sock.raw:/tmp/docker.sock:ro",
                     `${Path.join(__dirname, "../../plugin/crontab.tmpl")}:/root/app/crontab.tmpl`,
                     `${this.appConfigService.dataPath("ws.log")}:/root/app/ws.log`,
-                    `${this.pluginConfigService.dataPath("crontab.json")}:/root/app/crontab.json`
+                    `${this.fs.path("crontab.json")}:/root/app/crontab.json`
                 ]
             });
         }
@@ -81,8 +80,8 @@ export class CronService {
     }
 
     public async build(rebuild?: boolean): Promise<void> {
-        if(!existsSync(this.pluginConfigService.dataPath("crontab.json"))) {
-            await FS.writeJSON(this.pluginConfigService.dataPath("crontab.json"), {});
+        if(!this.fs.exists("crontab.json")) {
+            this.fs.writeJSON("crontab.json", {});
         }
 
         if(await this.dockerService.imageExists(this.imageName)) {
@@ -103,13 +102,13 @@ export class CronService {
     }
 
     public async edit(containerName: string): Promise<void> {
-        const path = Path.join(OS.tmpdir(), "ws-crontab.txt");
+        const tmp = new FileSystem(OS.tmpdir());
         const crontab = await this.getCrontab(containerName);
 
-        await FS.writeFile(path, crontab);
-        await spawn("nano", [path]);
+        await tmp.writeFile("ws-crontab.txt", crontab);
+        await spawn("nano", [tmp.path("ws-crontab.txt")]);
 
-        const res = await FS.readFile(path);
+        const res = await tmp.readFile("ws-crontab.txt");
 
         if(crontab === res.toString()) {
             return;
@@ -119,28 +118,27 @@ export class CronService {
     }
 
     public async getCrontab(containerName: string): Promise<string> {
-        if(!existsSync(this.configPath)) {
+        if(!this.fs.exists()) {
             return "";
         }
 
         const {
             [containerName]: crontab = ""
-        } = await FS.readJSON(this.configPath);
+        } = this.fs.readJSON("crontab.json");
 
         return crontab;
     }
 
     public async setCrontab(containerName: string, crontab: string): Promise<void> {
-        if(!existsSync(this.configPath)) {
-            await FS.writeJSON(this.configPath, {
+        if(!this.fs.exists("crontab.json")) {
+            this.fs.writeJSON("crontab.json", {
                 [containerName]: crontab
             });
-
             return;
         }
 
-        await FS.writeJSON(this.configPath, {
-            ...await FS.readJSON(this.configPath),
+        this.fs.writeJSON("crontab.json", {
+            ...this.fs.readJSON("crontab.json"),
             [containerName]: crontab
         });
     }
