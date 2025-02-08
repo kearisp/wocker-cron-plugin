@@ -23,7 +23,7 @@ export class CronService {
     ) {}
 
     public get fs(): FileSystem {
-        return new FileSystem(this.pluginConfigService.fs.path());
+        return this.pluginConfigService.fs;
     }
 
     public get containerName(): string {
