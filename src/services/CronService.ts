@@ -105,10 +105,10 @@ export class CronService {
         const tmp = new FileSystem(OS.tmpdir());
         const crontab = await this.getCrontab(containerName);
 
-        await tmp.writeFile("ws-crontab.txt", crontab);
+        tmp.writeFile("ws-crontab.txt", crontab);
         await spawn("nano", [tmp.path("ws-crontab.txt")]);
 
-        const res = await tmp.readFile("ws-crontab.txt");
+        const res = tmp.readFile("ws-crontab.txt");
 
         if(crontab === res.toString()) {
             return;
