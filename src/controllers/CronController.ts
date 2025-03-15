@@ -6,7 +6,7 @@ import {
     AppConfigService,
     DockerService,
     ProjectService,
-    FS
+    FileSystem
 } from "@wocker/core";
 
 import {CronService} from "../services/CronService";
@@ -97,7 +97,9 @@ export class CronController {
             return this.cronService.getCrontab(project.containerName);
         }
         else if(filename) {
-            const file = await FS.readFile(filename);
+            const fs = new FileSystem(this.appConfigService.pwd())
+
+            const file = fs.readFile(filename);
 
             await this.cronService.setCrontab(project.containerName, file.toString());
         }
