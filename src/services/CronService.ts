@@ -92,7 +92,7 @@ export class CronService {
             await this.dockerService.imageRm(this.imageName);
         }
 
-        console.log("Build...");
+        console.info("Build...");
 
         await this.dockerService.buildImage({
             tag: this.imageName,
