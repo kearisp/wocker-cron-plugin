@@ -1,6 +1,6 @@
 {
     "name": "@wocker/cron-plugin",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Cron plugin for wocker",
     "license": "MIT",
@@ -19,7 +19,7 @@
         "url": "https://github.com/kearisp/wocker-cron-plugin/issues"
     },
     "scripts": {
-        "prepare": "npm run build",
+        "prepublishOnly": "npm run build",
         "watch": "tsc -w",
         "build": "tsc",
         "test": "echo \"Error: no test specified\" && exit 1"
@@ -30,7 +30,7 @@
         "path": "^0.12.7"
     },
     "devDependencies": {
-        "@types/node": "^22.13.1",
-        "typescript": "^5.7.3"
+        "@types/node": "^22.14.0",
+        "typescript": "^5.8.2"
     }
 }
