@@ -7,7 +7,6 @@ import {
 } from "@wocker/core";
 import * as Path from "path";
 import * as OS from "os";
-
 import {spawn} from "../utils/spawn";
 
 
@@ -106,6 +105,7 @@ export class CronService {
         const crontab = await this.getCrontab(containerName);
 
         tmp.writeFile("ws-crontab.txt", crontab);
+
         await spawn("nano", [tmp.path("ws-crontab.txt")]);
 
         const res = tmp.readFile("ws-crontab.txt");
@@ -118,7 +118,7 @@ export class CronService {
     }
 
     public async getCrontab(containerName: string): Promise<string> {
-        if(!this.fs.exists()) {
+        if(!this.fs.exists("crontab.json")) {
             return "";
         }
 

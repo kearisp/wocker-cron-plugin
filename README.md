@@ -2,6 +2,13 @@
 
 ###### Docker workspace for web projects
 
+[![npm version](https://img.shields.io/npm/v/@wocker/cron-plugin.svg)](https://www.npmjs.com/package/@wocker/cron-plugin)
+[![Publish](https://github.com/kearisp/wocker-cron-plugin/actions/workflows/publish-latest.yml/badge.svg?event=release)](https://github.com/kearisp/wocker-cron-plugin/actions/workflows/publish-latest.yml)
+[![License](https://img.shields.io/npm/l/@wocker/cron-plugin)](https://github.com/kearisp/wocker-cron-plugin/blob/main/LICENSE)
+
+[![npm total downloads](https://img.shields.io/npm/dt/@wocker/cron-plugin.svg)](https://www.npmjs.com/package/@wocker/cron-plugin)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/@wocker/cron-plugin)](https://bundlephobia.com/package/@wocker/cron-plugin)
+
 ## Installation
 
 **Note:** It is recommended to install Wocker globally to ensure accessibility from any directory in your terminal.
