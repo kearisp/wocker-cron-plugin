@@ -1,20 +1,25 @@
-FROM nginxproxy/nginx-proxy
+FROM docker.io/nginxproxy/docker-gen:0.15.0 AS docker-gen
 
-ENV WS_DIR='/root/app' TZ=Europe/Kiev
+FROM docker.io/nginxproxy/forego:0.18.3 AS forego
 
-WORKDIR $WS_DIR
+FROM alpine:3.20
 
-RUN echo "WS_DIR=${WS_DIR}" | tee -a /etc/environment
-RUN apt-get update && \
-    apt-get -y --fix-missing install cron curl
+ENV WS_DIR='/app' TZ=Europe/Kiev
 
-ADD ./bin/entrypoint.sh /entrypoint-cron.sh
-ADD ./bin/docker-exec /usr/bin/docker-exec
-ADD ./Procfile /root/app/Procfile
-ADD ./crontab.tmpl /root/app/crontab.tmpl
+RUN echo "WS_DIR=${WS_DIR}" | tee -a /etc/environment && \
+    apk --no-cache add dcron curl tini
 
-RUN chmod +x /entrypoint-cron.sh && \
+COPY ./app /app/
+COPY --from=forego /usr/local/bin/forego /usr/local/bin/forego
+COPY --from=docker-gen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
+ADD ./usr/bin/docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
+ADD ./usr/bin/docker-exec /usr/bin/docker-exec
+
+RUN chmod +x /usr/bin/docker-entrypoint.sh && \
     chmod +x /usr/bin/docker-exec
 
-ENTRYPOINT ["/entrypoint-cron.sh"]
+WORKDIR /app
+
+# ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/sbin/tini", "--", "docker-entrypoint.sh"]
 CMD ["forego", "start", "-r"]

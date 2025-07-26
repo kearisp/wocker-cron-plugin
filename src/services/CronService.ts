@@ -13,7 +13,7 @@ import {spawn} from "../utils/spawn";
 @Injectable()
 export class CronService {
     protected _containerName = "cron.ws";
-    protected _imageName = "wocker-cron";
+    protected _imageName = "wocker-cron:1.0.1";
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
@@ -56,9 +56,8 @@ export class CronService {
                 volumes: [
                     "/var/run/docker.sock.raw:/var/run/docker.sock:ro",
                     "/var/run/docker.sock.raw:/tmp/docker.sock:ro",
-                    `${Path.join(__dirname, "../../plugin/crontab.tmpl")}:/root/app/crontab.tmpl`,
-                    `${this.appConfigService.dataPath("ws.log")}:/root/app/ws.log`,
-                    `${this.fs.path("crontab.json")}:/root/app/crontab.json`
+                    `${this.appConfigService.fs.path("ws.log")}:/app/ws.log`,
+                    `${this.fs.path("crontab.json")}:/app/crontab.json`
                 ]
             });
         }
