@@ -12,8 +12,14 @@ import {spawn} from "../utils/spawn";
 
 @Injectable()
 export class CronService {
-    protected _containerName = "cron.ws";
-    protected _imageName = "wocker-cron:1.0.1";
+    protected _containerName = "wocker-cron";
+    protected oldContainerNames: string[] = [
+        "cron.ws"
+    ];
+    protected _imageName = "wocker-cron:1.0.9";
+    protected oldImages: string[] = [
+        "wocker-cron:latest"
+    ];
 
     public constructor(
         protected readonly appConfigService: AppConfigService,
@@ -34,6 +40,10 @@ export class CronService {
     }
 
     public async start(restart?: boolean, rebuild?: boolean): Promise<void> {
+        for(const containerName of this.oldContainerNames) {
+            await this.dockerService.removeContainer(containerName);
+        }
+
         if(restart || rebuild) {
             await this.dockerService.removeContainer(this.containerName);
         }
@@ -78,6 +88,10 @@ export class CronService {
     }
 
     public async build(rebuild?: boolean): Promise<void> {
+        for(const image of this.oldImages) {
+            await this.dockerService.imageRm(image);
+        }
+
         if(!this.fs.exists("crontab.json")) {
             this.fs.writeJSON("crontab.json", {});
         }

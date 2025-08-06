@@ -1,2 +1,0 @@
-docker-gen: docker-gen -watch -notify "crontab /app/crontab.txt" /app/crontab.tmpl /app/crontab.txt
-# cron: crond -d -f
