@@ -1,6 +1,6 @@
 {
     "name": "@wocker/cron-plugin",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Cron plugin for wocker",
     "license": "MIT",
@@ -25,12 +25,12 @@
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
-        "@wocker/core": "^1.0.22",
+        "@wocker/core": "^1.0.24",
         "child_process": "^1.0.2",
         "path": "^0.12.7"
     },
     "devDependencies": {
-        "@types/node": "^22.14.0",
-        "typescript": "^5.8.2"
+        "@types/node": "^24.0.15",
+        "typescript": "^5.8.3"
     }
 }

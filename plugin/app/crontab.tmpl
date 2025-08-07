@@ -1,4 +1,4 @@
-{{ $file := include "/root/app/crontab.json" }}
+{{ $file := include "/app/crontab.json" }}
 {{ $content := fromJson $file }}
 
 {{- range $container := $ }}

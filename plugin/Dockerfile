@@ -1,20 +1,22 @@
-FROM nginxproxy/nginx-proxy
+FROM docker.io/nginxproxy/docker-gen:0.15.0 AS docker-gen
 
-ENV WS_DIR='/root/app' TZ=Europe/Kiev
+FROM alpine:3.20
 
-WORKDIR $WS_DIR
+ENV TZ=Europe/Kiev
 
-RUN echo "WS_DIR=${WS_DIR}" | tee -a /etc/environment
-RUN apt-get update && \
-    apt-get -y --fix-missing install cron curl
+RUN echo "WS_DIR=/app" | tee -a /etc/environment && \
+    apk --no-cache add supervisor dcron
 
-ADD ./bin/entrypoint.sh /entrypoint-cron.sh
-ADD ./bin/docker-exec /usr/bin/docker-exec
-ADD ./Procfile /root/app/Procfile
-ADD ./crontab.tmpl /root/app/crontab.tmpl
+COPY ./app /app/
+COPY --from=docker-gen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
+ADD ./usr/bin/docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
+ADD ./usr/bin/docker-exec /usr/bin/docker-exec
 
-RUN chmod +x /entrypoint-cron.sh && \
+RUN chmod +x /usr/bin/docker-entrypoint.sh && \
     chmod +x /usr/bin/docker-exec
 
-ENTRYPOINT ["/entrypoint-cron.sh"]
-CMD ["forego", "start", "-r"]
+WORKDIR /app
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/app/supervisord.conf"]
+

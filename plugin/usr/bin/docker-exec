@@ -42,7 +42,5 @@ EXEC_RESPONSE=$(curl --unix-socket "$DH" \
     -d "{\"Tty\":true,\"Detach\":false}" \
     "http://localhost/exec/$ID/start")
 
-#EXEC_RESPONSE=$(echo "$EXEC_RESPONSE" | sed 's/^[\n\r\s\t]*//')
-
 echo "[$TIME][cron:$CONTAINER] log: $EXEC_RESPONSE" >> "$LOG_FILE"
 echo "[$TIME][$CONTAINER] log: $EXEC_RESPONSE" >> /proc/1/fd/1

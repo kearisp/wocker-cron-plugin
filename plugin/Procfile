@@ -1,1 +1,0 @@
-dockergen: docker-gen -watch -notify "crontab /root/app/crontab.txt" /root/app/crontab.tmpl /root/app/crontab.txt

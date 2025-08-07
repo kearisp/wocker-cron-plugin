@@ -18,7 +18,7 @@ npm i -g @wocker/ws
 ```
 
 ```shell
-ws plugin:add cron
+ws plugin:install cron
 ```
 
 
