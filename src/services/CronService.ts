@@ -16,9 +16,10 @@ export class CronService {
     protected oldContainerNames: string[] = [
         "cron.ws"
     ];
-    protected _imageName = "wocker-cron:1.0.9";
+    protected _imageName = "wocker-cron:1.0.10";
     protected oldImages: string[] = [
-        "wocker-cron:latest"
+        "wocker-cron:latest",
+        "wocker-cron:1.0.9"
     ];
 
     public constructor(
