@@ -23,7 +23,7 @@ export class CronController {
     ) {}
 
     @Command("cron:start")
-    async start(
+    public async start(
         @Option("build", {
             type: "boolean",
             alias: "b",
@@ -43,7 +43,7 @@ export class CronController {
     }
 
     @Command("cron:stop")
-    async stop(): Promise<void> {
+    public async stop(): Promise<void> {
         console.info("Stopping cron...");
 
         await this.cronService.stop();
@@ -55,7 +55,7 @@ export class CronController {
     }
 
     @Command("crontab [filename]")
-    async crontab(
+    public async crontab(
         @Param("filename")
         filename?: string,
         @Option("name", {
@@ -83,11 +83,7 @@ export class CronController {
         })
         remove?: boolean
     ): Promise<string | undefined> {
-        if(name) {
-            await this.projectService.cdProject(name);
-        }
-
-        const project = await this.projectService.get();
+        const project = this.projectService.get(name);
 
         if(edit) {
             await this.cronService.edit(project.containerName);

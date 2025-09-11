@@ -5,7 +5,7 @@ FROM alpine:3.20
 ENV TZ=Europe/Kiev
 
 RUN echo "WS_DIR=/app" | tee -a /etc/environment && \
-    apk --no-cache add supervisor dcron
+    apk --no-cache add supervisor dcron curl
 
 COPY ./app /app/
 COPY --from=docker-gen /usr/local/bin/docker-gen /usr/local/bin/docker-gen
