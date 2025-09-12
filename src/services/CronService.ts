@@ -16,10 +16,11 @@ export class CronService {
     protected oldContainerNames: string[] = [
         "cron.ws"
     ];
-    protected _imageName = "wocker-cron:1.0.10";
+    protected _imageName = "wocker-cron:1.0.11";
     protected oldImages: string[] = [
         "wocker-cron:latest",
-        "wocker-cron:1.0.9"
+        "wocker-cron:1.0.9",
+        "wocker-cron:1.0.10"
     ];
 
     public constructor(
@@ -67,6 +68,7 @@ export class CronService {
                 volumes: [
                     "/var/run/docker.sock.raw:/var/run/docker.sock:ro",
                     "/var/run/docker.sock.raw:/tmp/docker.sock:ro",
+                    `${Path.join(__dirname, "../../plugin/usr/bin/docker-exec")}:/usr/bin/docker-exec`,
                     `${this.appConfigService.fs.path("ws.log")}:/app/ws.log`,
                     `${this.fs.path("crontab.json")}:/app/crontab.json`
                 ]

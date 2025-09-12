@@ -1,6 +1,6 @@
 {
     "name": "@wocker/cron-plugin",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Cron plugin for wocker",
     "license": "MIT",
