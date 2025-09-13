@@ -21,7 +21,7 @@ LOG_FILE="$WS_DIR/ws.log"
 EXEC_RESPONSE=$(curl --unix-socket "$DH" \
     -H "Accept: text/plain" \
     -H "Content-Type: application/json" \
-    -d "{\"AttachStdin\":false,\"AttachStdout\":true,\"AttachStderr\":true,\"DetachKeys\":\"ctrl-p,ctrl-q\",\"Tty\":false,\"Cmd\":[$JSON]}" \
+    -d "{\"AttachStdin\":false,\"AttachStdout\":true,\"AttachStderr\":true,\"DetachKeys\":\"ctrl-p,ctrl-q\",\"Tty\":true,\"Cmd\":[$JSON]}" \
     "http://localhost/containers/$CONTAINER/exec")
 
 ID=$(echo $EXEC_RESPONSE | grep -Eo '"Id":"[^"]+"' | sed 's/.*"Id":"\([^"]*\).*/\1/')
@@ -42,5 +42,7 @@ EXEC_RESPONSE=$(curl --unix-socket "$DH" \
     -d "{\"Tty\":true,\"Detach\":false}" \
     "http://localhost/exec/$ID/start")
 
-echo "[$TIME][cron:$CONTAINER] log: $EXEC_RESPONSE" >> "$LOG_FILE"
-echo "[$TIME][$CONTAINER] log: $EXEC_RESPONSE" >> /proc/1/fd/1
+printf '%s' "$EXEC_RESPONSE" | while IFS= read -r line || [ -n "$line" ]; do
+    echo "[$TIME][cron:$CONTAINER] log: $line" >> "$LOG_FILE"
+    echo "[$TIME][$CONTAINER] log: $line" >> /proc/1/fd/1
+done
