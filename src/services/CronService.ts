@@ -16,12 +16,13 @@ export class CronService {
     protected oldContainerNames: string[] = [
         "cron.ws"
     ];
-    protected _imageName = "wocker-cron:1.0.12";
+    protected _imageName = "wocker-cron:1.0.13";
     protected oldImages: string[] = [
         "wocker-cron:latest",
         "wocker-cron:1.0.9",
         "wocker-cron:1.0.10",
-        "wocker-cron:1.0.11"
+        "wocker-cron:1.0.11",
+        "wocker-cron:1.0.12"
     ];
 
     public constructor(
@@ -118,11 +119,12 @@ export class CronService {
 
     public async edit(containerName: string): Promise<void> {
         const tmp = new FileSystem(OS.tmpdir());
-        const crontab = await this.getCrontab(containerName);
+        const crontab = this.getCrontab(containerName);
 
         tmp.writeFile("ws-crontab.txt", crontab);
 
-        await spawn("nano", [tmp.path("ws-crontab.txt")]);
+        const editor = process.env.VISUAL || process.env.EDITOR || "nano";
+        await spawn(editor, [tmp.path("ws-crontab.txt")]);
 
         const res = tmp.readFile("ws-crontab.txt");
 
@@ -130,10 +132,20 @@ export class CronService {
             return;
         }
 
-        await this.setCrontab(containerName, res.toString());
+        this.setCrontab(containerName, res.toString());
+
+        const stream = await this.dockerService.exec(this.containerName, ["supervisorctl", "restart", "docker-gen"]);
+
+        if(!stream) {
+            return;
+        }
+
+        console.info("Restarting...");
+
+        this.dockerService.docker.modem.demuxStream(stream, process.stdout, process.stderr);
     }
 
-    public async getCrontab(containerName: string): Promise<string> {
+    public getCrontab(containerName: string): string {
         if(!this.fs.exists("crontab.json")) {
             return "";
         }
@@ -145,7 +157,7 @@ export class CronService {
         return crontab;
     }
 
-    public async setCrontab(containerName: string, crontab: string): Promise<void> {
+    public setCrontab(containerName: string, crontab: string): void {
         if(!this.fs.exists("crontab.json")) {
             this.fs.writeJSON("crontab.json", {
                 [containerName]: crontab

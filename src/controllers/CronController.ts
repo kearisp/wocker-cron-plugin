@@ -96,10 +96,10 @@ export class CronController {
 
             const file = fs.readFile(filename);
 
-            await this.cronService.setCrontab(project.containerName, file.toString());
+            this.cronService.setCrontab(project.containerName, file.toString());
         }
         else if(remove) {
-            await this.cronService.setCrontab(project.containerName, "");
+            this.cronService.setCrontab(project.containerName, "");
         }
         else if(!filename && !process.stdin.isTTY) {
             const crontab: string = await new Promise((resolve, reject) => {
@@ -116,13 +116,7 @@ export class CronController {
                 process.stdin.on("error", reject);
             });
 
-            await this.cronService.setCrontab(project.containerName, crontab);
+            this.cronService.setCrontab(project.containerName, crontab);
         }
-
-        await this.dockerService.exec(this.containerName, [
-            "bash", "-c", [
-                "docker-gen -notify \"crontab /root/app/crontab.txt\" /root/app/crontab.tmpl /root/app/crontab.txt"
-            ].join(" ")
-        ]);
     }
 }
