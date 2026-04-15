@@ -1,7 +1,7 @@
 {
     "name": "@wocker/cron-plugin",
     "type": "commonjs",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Cron plugin for wocker",
     "license": "MIT",

@@ -158,15 +158,12 @@ export class CronService {
     }
 
     public setCrontab(containerName: string, crontab: string): void {
-        if(!this.fs.exists("crontab.json")) {
-            this.fs.writeJSON("crontab.json", {
-                [containerName]: crontab
-            });
-            return;
-        }
+        const data = this.fs.exists("crontab.json")
+            ? this.fs.readJSON("crontab.json")
+            : {};
 
         this.fs.writeJSON("crontab.json", {
-            ...this.fs.readJSON("crontab.json"),
+            ...data,
             [containerName]: crontab
         });
     }
