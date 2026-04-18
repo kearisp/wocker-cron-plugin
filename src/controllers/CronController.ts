@@ -13,8 +13,6 @@ import {CronService} from "../services/CronService";
 
 @Controller()
 export class CronController {
-    protected containerName = "cron.ws";
-
     public constructor(
         protected readonly appConfigService: AppConfigService,
         protected readonly cronService: CronService,
