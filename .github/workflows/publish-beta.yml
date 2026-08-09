@@ -21,10 +21,10 @@ jobs:
             id-token: write
         steps:
           - name: Checkout code
-            uses: actions/checkout@v4
+            uses: actions/checkout@v7
 
           - name: Setup Node.js
-            uses: actions/setup-node@v4
+            uses: actions/setup-node@v7
             with:
                 node-version: 24
                 registry-url: 'https://registry.npmjs.org'
@@ -35,7 +35,7 @@ jobs:
                 tag: beta
 
           - name: Cache dependencies
-            uses: actions/cache@v4
+            uses: actions/cache@v6
             with:
                 path: ~/.npm
                 key: ${{ runner.os }}-npm-${{ hashFiles('**/package.json') }}
@@ -45,6 +45,14 @@ jobs:
           - name: Install dependencies
             shell: bash
             run: npm install
+
+          - name: Test
+            uses: kearisp/wocker-area/.github/actions/test@master
+            timeout-minutes: 2
+            with:
+                version: "beta"
+                gist_token: ${{ secrets.GIST_TOKEN }}
+                gist_id: ${{ secrets.GIST_ID }}
 
           - name: Publish beta to NPM
             if: ${{ github.repository_owner == 'kearisp' }}

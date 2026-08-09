@@ -1,7 +1,7 @@
 {
     "name": "@wocker/cron-plugin",
     "type": "commonjs",
-    "version": "1.0.14",
+    "version": "1.0.15",
     "author": "Kris Papercut <krispcut@gmail.com>",
     "description": "Cron plugin for wocker",
     "license": "MIT",
@@ -24,7 +24,9 @@
         "prepublishOnly": "npm run build",
         "watch": "tsc -w",
         "build": "tsc",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "jest --colors",
+        "test-watch": "jest --colors --watchAll --coverage",
+        "make-coverage-badge": "make-coverage-badge"
     },
     "dependencies": {
         "@wocker/core": "^1.0.25",
@@ -32,7 +34,12 @@
         "path": "^0.12.7"
     },
     "devDependencies": {
+        "@types/jest": "^30.0.0",
         "@types/node": "^24.0.15",
-        "typescript": "^5.8.3"
+        "jest": "^30.3.0",
+        "make-coverage-badge": "^1.2.0",
+        "ts-jest": "^29.4.9",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.3"
     }
 }

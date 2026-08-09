@@ -10,10 +10,9 @@ ADD ./usr/bin/docker-exec /usr/bin/docker-exec
 ADD ./etc/supervisor.d/cron.ini /etc/supervisor.d/cron.ini
 COPY ./app /app/
 
-RUN apk --no-cache add supervisor dcron curl tzdata && \
+RUN apk --no-cache add supervisor curl tzdata && \
     chmod +x /usr/bin/docker-exec
 
 WORKDIR /app
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
-
