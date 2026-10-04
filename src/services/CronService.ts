@@ -64,6 +64,7 @@ export class CronService {
             container = await this.dockerService.createContainer({
                 name: this.containerName,
                 image: this.imageName,
+                internal: true,
                 networkMode: "host",
                 restart: "always",
                 env: {
